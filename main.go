@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"sync"
+	"time"
 
 	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/bson"
@@ -22,6 +23,27 @@ type Todo struct {
 }
 
 var mutex = &sync.Mutex{}
+
+type wrappedWriter struct {
+	http.ResponseWriter
+	statusCode int
+}
+
+func (w *wrappedWriter) WriteHeader(statusCode int) {
+	w.statusCode = statusCode
+	w.ResponseWriter.WriteHeader(statusCode)
+}
+
+func Logging(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+
+		wrapped := &wrappedWriter{ResponseWriter: w, statusCode: http.StatusOK}
+
+		next.ServeHTTP(wrapped, r)
+		log.Println(wrapped.statusCode, r.Method, r.URL.Path, time.Since(start))
+	})
+}
 
 func main() {
 
@@ -168,7 +190,11 @@ func main() {
 		json.NewEncoder(w).Encode(todos)
 	})
 
-	if err := http.ListenAndServe("localhost:8080", mux); err != nil {
-		fmt.Println(err.Error())
+	server := &http.Server{
+		Addr:    "localhost:8080",
+		Handler: Logging(mux),
 	}
+
+	fmt.Println("Server running on port 8080")
+	server.ListenAndServe()
 }
