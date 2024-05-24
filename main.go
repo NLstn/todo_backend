@@ -186,6 +186,7 @@ func main() {
 			todos = append(todos, todo)
 		}
 
+		w.Header().Add("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(todos)
 	})
