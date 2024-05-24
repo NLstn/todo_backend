@@ -67,6 +67,7 @@ func main() {
 	collection := client.Database("todos").Collection("todos")
 
 	mux.HandleFunc("POST /v1/todos", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Access-Control-Allow-Origin", "*")
 
 		var todo Todo
 		err := json.NewDecoder(r.Body).Decode(&todo)
@@ -91,6 +92,7 @@ func main() {
 	})
 
 	mux.HandleFunc("GET /v1/todos/{id}", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Access-Control-Allow-Origin", "*")
 
 		idStr := r.PathValue("id")
 		if idStr == "" {
@@ -116,6 +118,8 @@ func main() {
 	})
 
 	mux.HandleFunc("PATCH /v1/todos/{id}", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Access-Control-Allow-Origin", "*")
+
 		id, err := primitive.ObjectIDFromHex(r.PathValue("id"))
 		if err != nil {
 			http.Error(w, "Invalid ID", http.StatusBadRequest)
@@ -147,6 +151,8 @@ func main() {
 	})
 
 	mux.HandleFunc("DELETE /v1/todos/{id}", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Access-Control-Allow-Origin", "*")
+
 		id, err := primitive.ObjectIDFromHex(r.PathValue("id"))
 		if err != nil {
 			http.Error(w, "Invalid ID", http.StatusBadRequest)
@@ -168,6 +174,8 @@ func main() {
 	})
 
 	mux.HandleFunc("GET /v1/todos", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Access-Control-Allow-Origin", "*")
+
 		rows, err := collection.Find(context.TODO(), bson.M{})
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -186,9 +194,22 @@ func main() {
 			todos = append(todos, todo)
 		}
 
-		w.Header().Add("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(todos)
+	})
+
+	mux.HandleFunc("OPTIONS /v1/todos", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Access-Control-Allow-Origin", "*")
+		w.Header().Add("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE")
+		w.Header().Add("Access-Control-Allow-Headers", "Content-Type")
+		w.WriteHeader(http.StatusOK)
+	})
+
+	mux.HandleFunc("OPTIONS /v1/todos/{id}", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Access-Control-Allow-Origin", "*")
+		w.Header().Add("Access-Control-Allow-Methods", "GET, PATCH, DELETE")
+		w.Header().Add("Access-Control-Allow-Headers", "Content-Type")
+		w.WriteHeader(http.StatusOK)
 	})
 
 	server := &http.Server{
